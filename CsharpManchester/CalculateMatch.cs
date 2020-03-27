@@ -7,18 +7,18 @@ namespace CsharpManchester
 {
     public class CalculateMatch : IOutput
     {
-        private string[] matches;
-        private List<Team> teams = new List<Team>();
-        public string _results;
+        private readonly string[] matches;
+        private readonly List<Team> teams = new List<Team>();
+        private readonly string _results;
 
         public CalculateMatch(string results)
         {
-            _results = results;
+            _results = results ?? throw new ArgumentNullException(results);
             matches = results.Split(",");
             RegisterTeams();
             CalculateScore();
         }
-        //002 
+        //002 Calculate Score of each Team
         private void CalculateScore()
         {
             for (int i = 0; i < matches.Length; i++) // 1st match
@@ -28,16 +28,16 @@ namespace CsharpManchester
 
                 for (int j = 0; j < teams.Count; j++)
                 {
-                    if (matches[i].Contains(teams[j].Name))
+                    if (matches[i].Contains(teams[j].Name,StringComparison.InvariantCulture))
                     {
-                        int nameIndex = matches[i].IndexOf(teams[j].Name);
+                        int nameIndex = matches[i].IndexOf(teams[j].Name,StringComparison.InvariantCulture);
                         int scoreIndex = nameIndex + teams[j].Name.Length;
                         int score = 0;
 
                         if (nameIndex > 0)
                         {
                             awayTeam = teams[j];
-                            int.TryParse(matches[i].Substring(scoreIndex), out score);
+                            bool IsTeam1score = int.TryParse(matches[i].Substring(scoreIndex), out score);
 
                             awayScore = score;
                         }
@@ -45,11 +45,9 @@ namespace CsharpManchester
                         {
                             homeTeam = teams[j];
                             String partString = matches[i].Substring(scoreIndex).Trim();
-                            int.TryParse(partString.Substring(0, partString.IndexOf(' ')), out score);
-
+                            bool isTeam2score = int.TryParse(partString.Substring(0, partString.IndexOf(' ',StringComparison.InvariantCulture)), out score);
                             homeScore = score;
                         }
-
                     }
                 }
 
@@ -88,21 +86,12 @@ namespace CsharpManchester
             {
                 // index of first team - name + score
                 var teamOneIndexEnd = matches[i].IndexOfAny("0123456789".ToCharArray());
-
-                // index of first team - name + score
+                // index of 2nd team - name + score
                 var teamTwoIndexEnd =
                     matches[i].Substring(teamOneIndexEnd + 1).IndexOfAny("0123456789".ToCharArray());
-
                 //team name
                 var team1 = matches[i].Substring(0, teamOneIndexEnd).Trim(); // Manchester United
                 var team2 = matches[i].Substring(teamOneIndexEnd + 1, teamTwoIndexEnd).Trim();
-
-                //"Manchester United 1 Chelsea 0,
-                //Arsenal 1 Manchester United 1,
-                //Manchester United 3 Fulham 1,
-                //Liverpool 2 Manchester United 1,
-                //Swansea 2 Manchester United 4";
-
                 if (!teams.Where(t => t.Name == team1).Any())
                 {
                     teams.Add(new Team { Name = team1 });
