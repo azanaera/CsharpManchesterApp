@@ -6,11 +6,6 @@ namespace CsharpManchester
 {
     public interface IOutput
     {
-        public int TotalWin { get; set; }
-        public int TotalDraw { get; set; }
-        public int TotalDefeat { get; set; }
-        public int TotalGoal { get; set; }
-        public int TotalConcede { get; set; }
-        public int TotalPoints { get; set; }
+        public Team GetResults(string selectedName);
     }
 }

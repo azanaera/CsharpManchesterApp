@@ -1,139 +1,123 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace CsharpManchester
 {
-    public class CalculateMatch : ICalculateMatch
+    public class CalculateMatch : IOutput
     {
-        public List<Tuple<Team, Team>> _matches;
-        public Output _output;
-        public string selectedTeam;
+        private string[] matches;
+        private List<Team> teams = new List<Team>();
         public string _results;
 
-        public CalculateMatch(string results, string teamSelect)
+        public CalculateMatch(string results)
         {
-            _matches = new List<Tuple<Team, Team>>();
-            _output = new Output();
             _results = results;
-            selectedTeam = teamSelect;
+            matches = results.Split(",");
+            RegisterTeams();
+            CalculateScore();
         }
-
-        public Output Output { get; set; }
-        public string SelectedTeam { get; set; }
-        public string Results { get; set ; }
-
-        public void CalculateScore()
+        //002 
+        private void CalculateScore()
         {
-            foreach (var match in _matches)
+            for (int i = 0; i < matches.Length; i++) // 1st match
             {
-                //Console.WriteLine($"{match.Item1.Name} : {match.Item1.Score} - {match.Item2.Name} : {match.Item2.Score}");
-                //team 1
-                if (match.Item1.Name == selectedTeam)
-                {
-                    _output.TotalGoal += match.Item1.Score;
-                }
+                Team homeTeam = null, awayTeam = null;
+                int homeScore = 0, awayScore = 0;
 
-                // team 2
-                if (match.Item2.Name == selectedTeam)
+                for (int j = 0; j < teams.Count; j++)
                 {
-                    _output.TotalGoal += match.Item2.Score;
-                }
-
-                //draw
-                if (match.Item1.Name == selectedTeam || match.Item2.Name == selectedTeam)
-                {
-                    if (match.Item1.Score == match.Item2.Score)
+                    if (matches[i].Contains(teams[j].Name))
                     {
-                        _output.TotalDraw += 1;
-                        _output.TotalPoints += 1;
-                    }
-                }
-                //end draw
+                        int nameIndex = matches[i].IndexOf(teams[j].Name);
+                        int scoreIndex = nameIndex + teams[j].Name.Length;
+                        int score = 0;
 
-                // team 1 win
-                if (match.Item1.Name == selectedTeam)
-                {
-                    if (match.Item1.Score > match.Item2.Score)
-                    {
-                        _output.TotalWin += 1;
-                        _output.TotalPoints += 3;
+                        if (nameIndex > 0)
+                        {
+                            awayTeam = teams[j];
+                            int.TryParse(matches[i].Substring(scoreIndex), out score);
+
+                            awayScore = score;
+                        }
+                        else
+                        {
+                            homeTeam = teams[j];
+                            String partString = matches[i].Substring(scoreIndex).Trim();
+                            int.TryParse(partString.Substring(0, partString.IndexOf(' ')), out score);
+
+                            homeScore = score;
+                        }
+
                     }
                 }
 
-                // team 2 win
-                if (match.Item2.Name == selectedTeam)
-                {
-                    if (match.Item2.Score > match.Item1.Score)
-                    {
-                        _output.TotalWin += 1;
-                    }
-                }
-                //end win
+                awayTeam.GamesPlayed++;
+                homeTeam.GamesPlayed++;
 
-                // team 1 defeat
-                if (match.Item1.Name == selectedTeam)
-                {
-                    if (match.Item1.Score < match.Item2.Score)
-                    {
-                        _output.TotalDefeat += 1;
-                    }
-                }
+                homeTeam.GoalsScored += homeScore;
+                awayTeam.GoalsScored += awayScore;
 
-                // team 2 defeat
-                if (match.Item2.Name == selectedTeam)
-                {
-                    if (match.Item2.Score < match.Item1.Score)
-                    {
-                        _output.TotalDefeat += 1;
-                        _output.TotalPoints += 3;
-                    }
-                }
-                //end defeat
+                homeTeam.GoalsConceded += awayScore;
+                awayTeam.GoalsConceded += homeScore;
 
-                //concede team 1 
-                if (match.Item1.Name != selectedTeam)
+                if (homeScore > awayScore)
                 {
-                    _output.TotalConcede += match.Item1.Score;
+                    homeTeam.Wins++;
+                    awayTeam.Losses++;
                 }
-
-                //concede team 2 
-                if (match.Item2.Name != selectedTeam)
+                else if (awayScore > homeScore)
                 {
-                    _output.TotalConcede += match.Item2.Score;
+                    awayTeam.Wins++;
+                    homeTeam.Losses++;
+                }
+                else
+                {
+                    homeTeam.Draws++;
+                    awayTeam.Draws++;
                 }
             }
         }
-
-        public void ConvertToMatches()
+        //001 Convert to List of Teams
+        private List<Team> RegisterTeams()
         {
-            List<Tuple<Team, Team>> matches = new List<Tuple<Team, Team>>();
-            foreach (var item in _results.Split(","))
+            var matches = _results.Split(",");
+
+            for (int i = 0; i < matches.Length; i++)
             {
-                //Console.WriteLine(item);
-
+                // index of first team - name + score
+                var teamOneIndexEnd = matches[i].IndexOfAny("0123456789".ToCharArray());
 
                 // index of first team - name + score
-                var teamOneIndexEnd = item.IndexOfAny("0123456789".ToCharArray());
+                var teamTwoIndexEnd =
+                    matches[i].Substring(teamOneIndexEnd + 1).IndexOfAny("0123456789".ToCharArray());
 
-                // index of first team - name + score
-                var teamTwoIndexEnd = 
-                    item.Substring(teamOneIndexEnd + 1).IndexOfAny("0123456789".ToCharArray());
+                //team name
+                var team1 = matches[i].Substring(0, teamOneIndexEnd).Trim(); // Manchester United
+                var team2 = matches[i].Substring(teamOneIndexEnd + 1, teamTwoIndexEnd).Trim();
 
+                //"Manchester United 1 Chelsea 0,
+                //Arsenal 1 Manchester United 1,
+                //Manchester United 3 Fulham 1,
+                //Liverpool 2 Manchester United 1,
+                //Swansea 2 Manchester United 4";
 
-                var team1 = item.Substring(0, teamOneIndexEnd).Trim(); // Manchester United
-                var team1Score = 
-                    (int)Char.GetNumericValue(item[teamOneIndexEnd]); // score1
-
-                var team2 = item.Substring(teamOneIndexEnd + 1, teamTwoIndexEnd).Trim();
-                var team2Score = 
-                    (int)Char.GetNumericValue(item.Substring(teamOneIndexEnd + 1, teamTwoIndexEnd + 1)[teamTwoIndexEnd]);
-                
-                _matches.Add(
-                    Tuple.Create(
-                    new Team { Name = team1, Score = team1Score },
-                    new Team { Name = team2, Score = team2Score }));
+                if (!teams.Where(t => t.Name == team1).Any())
+                {
+                    teams.Add(new Team { Name = team1 });
+                }
+                if(!teams.Where(t => t.Name == team2).Any())
+                {
+                    teams.Add(new Team { Name = team2 });
+                }
             }
+            return teams;
         }
-    }
+
+        public Team GetResults(string selectedName)
+        {
+            return teams.Where(t => t.Name == selectedName).FirstOrDefault();
+        }
+    } // end class
 }
